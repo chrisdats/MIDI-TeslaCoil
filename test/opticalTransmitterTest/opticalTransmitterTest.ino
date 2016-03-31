@@ -21,7 +21,7 @@
  */
  
 #define ledPin   13             // On-board Chip LED
-#define outPin   3              // Sinks IF-E96E
+#define txPin   3              // Sinks IF-E96E
 
 // LED variables
 int ledState = LOW;             // ledState used to set the LED
@@ -41,18 +41,18 @@ unsigned long txInterval = offtime;
 void setup() {
   // set the digital pin as output;
   pinMode(ledPin, OUTPUT);
-  pinMode(outPin, OUTPUT);
+  pinMode(txPin, OUTPUT);
   period = 1/freq;                      // period is inverse of frequency (math)
   ontime = 1000000*period*duty;         // in us
   offtime = 1000000*period*(1.0-duty);  // in us
   
-  delay(100);
-  // for debugging
+  // for debugging. need to open Serial Monitor for program to run
   Serial.begin(9600);
   while (!Serial);         // while the serial stream is not open, do nothing
   Serial.println(period);
   Serial.println(ontime);
   Serial.println(offtime);
+  Serial.println("Setup Complete");
 }
 
 void loop()
@@ -77,6 +77,8 @@ void loop()
   }
   
   
+  // same procedure as above but modification to allow for
+  // different ontime and offtime
   currentMicros = micros();
   if (currentMicros - previousMicros > txInterval) {
     previousMicros = currentMicros;
@@ -90,7 +92,7 @@ void loop()
       txInterval = offtime;
     }
     
-    digitalWrite(outPin, txState);
+    digitalWrite(txPin, txState);
   }
   
 }
