@@ -7,6 +7,7 @@
  Run this code to verify operation of optical transmitter
  IF-E96E should blink red
  AND On-Board LED will blink to show that Board has power and is working
+ In present version need to open Serial Monitor for code to run.
  
  EQUIPMENT
  Teensy 3.2
@@ -29,7 +30,7 @@ long previousMillis = 0;        // will store last time LED was updated
 long ledInterval = 1000;           // interval at which to blink (milliseconds)
 
 // Tx variables
-float freq = 10;                // Change the frequency of the tone here (in Hz)
+float freq = 0.5;                // Change the frequency of the tone here (in Hz)
 float period;
 float duty = .50;               //Change the duty cycle of the tone here
 int txState = LOW;
