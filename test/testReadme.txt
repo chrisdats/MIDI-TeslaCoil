@@ -15,9 +15,9 @@ and succesful connection between computer and Teensy
 verify proper hookup and operation of the optical
 transmitter
 
-3.a) ReadWriteSdFat.ino
-  b) SdInfo.ino
-Both files straight from SdFat library
+3. a) ReadWriteSdFat.ino
+   b) SdInfo.ino
+   Both files straight from SdFat library
 examples. Use to very that SdFat library 
 is installed properly and that SD card connection
 is good. 
