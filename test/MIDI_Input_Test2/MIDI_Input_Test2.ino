@@ -1,4 +1,6 @@
 // MIDI Input Test that utilizes callbacks found in MIDI library v4.2
+// prints out to serial monitor note info and lights up on board led
+// when note is played
 
 #include <MIDI.h>  // Add Midi Library
 

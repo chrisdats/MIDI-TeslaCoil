@@ -20,6 +20,7 @@
 
 
 
+
 // SD chip select pin for SPI comms.
 // Arduino Ethernet shield, pin 4.
 // Default SD chip select is the SPI SS pin (10).
@@ -46,26 +47,26 @@ MidiNoteList<sMaxNumNotes> midiNotes;
 // list will be opened (skips errors).
 char *tuneList[] = 
 {
-
-	"LOOPDEMO.MID",  // simplest and shortest file
-  "ELISE.MID",
-	"TWINKLE.MID",
-	"GANGNAM.MID",
-	"FUGUEGM.MID",
-	"POPCORN.MID",
-	"AIR.MID",
-	"PRDANCER.MID",
-	"MINUET.MID",
-	"FIRERAIN.MID",
-	"MOZART.MID",
-	"FERNANDO.MID",
-	"SONATAC.MID",
-	"SKYFALL.MID",
-	"XMAS.MID",
-	"GBROWN.MID",
-	"PROWLER.MID",
-	"IPANEMA.MID",
-	"JZBUMBLE.MID",
+        "jingle2.mid"
+//	"LOOPDEMO.MID"  // simplest and shortest file
+//      "ELISE.MID",
+//	"TWINKLE.MID",
+//	"GANGNAM.MID",
+//	"FUGUEGM.MID",
+//	"POPCORN.MID",
+//	"AIR.MID",
+//	"PRDANCER.MID",
+//	"MINUET.MID",
+//	"FIRERAIN.MID",
+//	"MOZART.MID",
+//	"FERNANDO.MID",
+//	"SONATAC.MID",
+//	"SKYFALL.MID",
+//	"XMAS.MID",
+//	"GBROWN.MID",
+//	"PROWLER.MID",
+//	"IPANEMA.MID",
+//	"JZBUMBLE.MID",
 };
 
 // These don't play as they need more than 16 tracks but will run if MIDIFile.h is changed
@@ -75,6 +76,32 @@ char *tuneList[] =
 
 SdFat	SD;
 MD_MIDIFile SMF;
+MIDI_CREATE_INSTANCE(HardwareSerial, Serial1, MIDI);
+
+void handleNotesChanged(bool isFirstNote = false)
+{
+    if (midiNotes.empty())
+    {
+        noTone(sAudioOutPin);
+    }
+    else
+    {
+        // Possible playing modes:
+        // Mono Low:  use midiNotes.getLow
+        // Mono High: use midiNotes.getHigh
+        // Mono Last: use midiNotes.getLast
+
+        byte currentNote = 0;
+        if (midiNotes.getLast(currentNote))
+        {
+          Serial.print("here is tone");
+          Serial.println(sNotePitches[currentNote]);
+            tone(sAudioOutPin, 660);
+        }
+    }
+}
+
+
 
 void midiCallback(midi_event *pev)
 // Called by the MIDIFile library when a file event needs to be processed
@@ -104,11 +131,16 @@ void midiCallback(midi_event *pev)
    if (pev->data[0] >= 0x90) {
      const bool firstNote = midiNotes.empty();
      midiNotes.add(MidiNote(pev->data[1], pev->data[2]));
+     Serial.print("adding ");
+     Serial.print(pev->data[1]);
+     Serial.print(" ");
+     Serial.println(pev->data[2]);
      handleNotesChanged(firstNote);
    }
    
    if (pev->data[0] >= 0x80) {
-     midiNotes.remove(inNote);
+     midiNotes.remove(pev->data[1]);
+     //Serial.println("removing" + pev->data[1]);
      handleNotesChanged();
    }
   
@@ -152,13 +184,14 @@ void midiSilence(void)
 
 void setup(void)
 {
+   MIDI.begin();
   // Set up LED pins
-  pinMode(READY_LED, OUTPUT);
-  pinMode(SD_ERROR_LED, OUTPUT);
-  pinMode(SMF_ERROR_LED, OUTPUT);
   pinMode(sAudioOutPin, OUTPUT);
 
   Serial.begin(SERIAL_RATE);
+  while (!Serial) {
+    ; // wait for serial port to connect. Need to open Serial Monitor
+  }
 
   DEBUG("\n[MidiFile Play List]");
 
@@ -178,74 +211,12 @@ void setup(void)
   digitalWrite(READY_LED, HIGH);
 }
 
-void tickMetronome(void)
-// flash a LED to the beat
-{
-	static uint32_t	lastBeatTime = 0;
-	static boolean	inBeat = false;
-	uint16_t	beatTime;
-
-	beatTime = 60000/SMF.getTempo();		// msec/beat = ((60sec/min)*(1000 ms/sec))/(beats/min)
-	if (!inBeat)
-	{
-		if ((millis() - lastBeatTime) >= beatTime)
-		{
-			lastBeatTime = millis();
-			digitalWrite(BEAT_LED, HIGH);
-			inBeat = true;
-		}
-	}
-	else
-	{
-		if ((millis() - lastBeatTime) >= 100)	// keep the flash on for 100ms only
-		{
-			digitalWrite(BEAT_LED, LOW);
-			inBeat = false;
-		}
-	}
-
-}
-
-
-
-void handleNotesChanged(bool isFirstNote = false)
-{
-    if (midiNotes.empty())
-    {
-        handleGateChanged(false);
-        noTone(sAudioOutPin);
-    }
-    else
-    {
-        // Possible playing modes:
-        // Mono Low:  use midiNotes.getLow
-        // Mono High: use midiNotes.getHigh
-        // Mono Last: use midiNotes.getLast
-
-        byte currentNote = 0;
-        if (midiNotes.getLast(currentNote))
-        {
-            tone(sAudioOutPin, sNotePitches[currentNote]);
-
-            if (isFirstNote)
-            {
-                handleGateChanged(true);
-            }
-            else
-            {
-                pulseGate(); // Retrigger envelopes. Remove for legato effect.
-            }
-        }
-    }
-}
-
-
-
 
 
 
 void loop(void)
 {
+   MIDI.read();
     int  err;
 	
 	for (uint8_t i=0; i<ARRAY_SIZE(tuneList); i++)
@@ -272,7 +243,7 @@ void loop(void)
 		while (!SMF.isEOF())
 		{
 			if (SMF.getNextEvent())
-			tickMetronome();
+                          ;
 		}
 
 		// done with this one
