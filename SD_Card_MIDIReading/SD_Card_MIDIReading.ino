@@ -180,6 +180,9 @@ void setup(void)
 {
    MIDI.begin();
   // Set up LED pins
+//    pinMode(READY_LED, OUTPUT);
+//  pinMode(SD_ERROR_LED, OUTPUT);
+//  pinMode(SMF_ERROR_LED, OUTPUT);
   pinMode(sAudioOutPin, OUTPUT);
 
   Serial.begin(SERIAL_RATE);

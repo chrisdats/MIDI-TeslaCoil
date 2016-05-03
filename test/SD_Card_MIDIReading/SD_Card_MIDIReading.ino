@@ -1,4 +1,5 @@
-// Test playing a succession of MIDI files from the SD card.
+// Tried to combine two libraries
+//Test playing a succession of MIDI files from the SD card.
 // Example program to demonstrate the use of the MIDFile library
 // Just for fun light up a LED in time to the music.
 //

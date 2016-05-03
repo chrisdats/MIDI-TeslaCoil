@@ -1,4 +1,5 @@
 // Use this file to play MIDI files from SD Card
+// currently plays one file on repeats
 
 /*
  MD_MIDIFile_Loop.ino 
@@ -28,29 +29,15 @@ CONNECTIONS
 #include <MD_MIDIFile.h>
 #include "pitches.h"
 
-#define	USE_MIDI	0
-
-#if USE_MIDI // set up for direct MIDI serial output
-
-#define DEBUGS(s)
-#define	DEBUG(s, x)
-#define	DEBUGX(s, x)
-#define	SERIAL_RATE	31250
-
-#else // don't use MIDI to allow printing debug statements
 
 #define DEBUGS(s)     Serial.print(s)
 #define	DEBUG(s, x)	  { Serial.print(F(s)); Serial.print(x); }
 #define	DEBUGX(s, x)	{ Serial.print(F(s)); Serial.print(x, HEX); }
 #define	SERIAL_RATE	9600
 
-#endif // USE_MIDI
 
 
 // SD chip select pin for SPI comms.
-// Arduino Ethernet shield, pin 4.
-// Default SD chip select is the SPI SS pin (10).
-// Other hardware will be different as documented for that hardware.
 #define  SD_SELECT  20
 
 #define	ARRAY_SIZE(a)	(sizeof(a)/sizeof(a[0]))

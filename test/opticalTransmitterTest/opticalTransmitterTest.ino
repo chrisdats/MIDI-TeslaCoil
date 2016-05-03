@@ -21,7 +21,7 @@
  IF-E96E Anode (+) (long) <-> VIN_3V3
  */
  
-#define ledPin   3             // On-board Chip LED
+#define ledPin   13             // On-board Chip LED
 #define txPin   6              // Sinks IF-E96E
 
 // LED variables
