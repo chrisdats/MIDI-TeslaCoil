@@ -21,8 +21,8 @@
  IF-E96E Anode (+) (long) <-> VIN_3V3
  */
  
-#define ledPin   13             // On-board Chip LED
-#define txPin   3              // Sinks IF-E96E
+#define ledPin   3             // On-board Chip LED
+#define txPin   6              // Sinks IF-E96E
 
 // LED variables
 int ledState = LOW;             // ledState used to set the LED
@@ -30,7 +30,7 @@ long previousMillis = 0;        // will store last time LED was updated
 long ledInterval = 1000;           // interval at which to blink (milliseconds)
 
 // Tx variables
-float freq = 20;                // Change the frequency of the tone here (in Hz)
+float freq = .2;                // Change the frequency of the tone here (in Hz)
 float period;
 float duty = .50;               //Change the duty cycle of the tone here
 int txState = LOW;

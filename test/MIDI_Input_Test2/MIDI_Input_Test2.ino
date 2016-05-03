@@ -4,7 +4,7 @@
 
 #include <MIDI.h>  // Add Midi Library
 
-#define LED 13    // Teensy Board LED is on Pin 13
+#define LED 3    // Teensy Board LED is on Pin 13
 unsigned long t=0;
 
 //Create an instance of the library using Teensy Hardware Serial Port 1 (not default)

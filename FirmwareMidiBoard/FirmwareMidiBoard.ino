@@ -38,9 +38,18 @@
 
 
 #include <MIDI.h>  // Add Midi Library
+#include <SdFat.h>
+#include <MD_MIDIFile.h>
+#include "pitches.h"
 
-#define ledPin 13      // Teensy Board ledPin is on Pin 13
-#define txPin   3              // Sinks IF-E96E
+#define ledPin 3      // Teensy Board ledPin is on Pin 13
+#define txPin   6              // Sinks IF-E96E
+
+#define	DEBUG(x)	Serial.print(x)
+#define	DEBUGX(x)	Serial.print(x, HEX)
+#define	SERIAL_RATE	9600
+#define  SD_SELECT  20
+#define	ARRAY_SIZE(a)	(sizeof(a)/sizeof(a[0]))
 
 unsigned long t=0;  // timer for MIDI port inactivity
 
@@ -56,52 +65,162 @@ unsigned long txInterval = offtime;
 
 //Create an instance of the library using Teensy Hardware Serial Port 1 (not default)
 MIDI_CREATE_INSTANCE(HardwareSerial, Serial1, MIDI);
+static const unsigned sAudioOutPin = 6;
+static const unsigned sMaxNumNotes = 16;
+MidiNoteList<sMaxNumNotes> midiNotes;
 
-void setup() {
-  pinMode(ledPin, OUTPUT);         // Set LED to output
-  pinMode(txPin, OUTPUT);          // Set optical transmit pin ot out
-  MIDI.begin(MIDI_CHANNEL_OMNI); // Initialize the Midi Library.
-  // OMNI sets it to listen to all channels.. MIDI.begin(2) would set it 
-  // to respond to notes on channel 2 only.
-  MIDI.setHandleNoteOn(MyHandleNoteOn); // This command
-  // tells the Midi Library which function you want to call when a NOTE ON command
-  // is received. In this case it's "MyHandleNoteOn".
-  MIDI.setHandleNoteOff(MyHandleNoteOff); // This command tells the Midi Library 
-  // to call "MyHandleNoteOff" when a NOTE OFF command is received.
-  Serial.begin(9600);
-  while (!Serial) {
-    ; // wait for serial port to connect. Need to open Serial Monitor
+SdFat	SD;
+MD_MIDIFile SMF;
+
+// The files in the tune list should be located on the SD card 
+// or an error will occur opening the file and the next in the 
+// list will be opened (skips errors).
+char *tuneList[] = 
+{
+        "jingle.mid"
+//	"LOOPDEMO.MID",  // simplest and shortest file
+//        "ELISE.MID",
+//	"TWINKLE.MID",
+//	"GANGNAM.MID",
+//	"FUGUEGM.MID",
+//	"POPCORN.MID",
+//	"AIR.MID",
+//	"PRDANCER.MID",
+//	"MINUET.MID",
+//	"FIRERAIN.MID",
+//	"MOZART.MID",
+//	"FERNANDO.MID",
+//	"SONATAC.MID",
+//	"SKYFALL.MID",
+//	"XMAS.MID",
+//	"GBROWN.MID",
+//	"PROWLER.MID",
+//	"IPANEMA.MID",
+//	"JZBUMBLE.MID",
+};
+
+
+// from SD_CARD_MIDIReading
+void midiCallback(midi_event *pev)
+// Called by the MIDIFile library when a file event needs to be processed
+// thru the midi communications interface.
+// This callback is set up in the setup() function.
+{
+#if USE_MIDI
+	if ((pev->data[0] >= 0x80) && (pev->data[0] <= 0xe0))
+	{
+		Serial.write(pev->data[0] | pev->channel);
+		Serial.write(&pev->data[1], pev->size-1);
+	}
+	else
+		Serial.write(pev->data, pev->size);
+#endif
+  DEBUG("\nM T");
+  DEBUG(pev->track);
+  DEBUG(":  Ch ");
+  DEBUG(pev->channel+1);
+  DEBUG(" Data ");
+  for (uint8_t i=0; i<pev->size; i++)
+  {
+	DEBUGX(pev->data[i]);
+    DEBUG(' ');
   }
-  Serial.println("Serial Port Initialized");
+  
+   if (pev->data[0] >= 0x90) {
+     const bool firstNote = midiNotes.empty();
+     midiNotes.add(MidiNote(pev->data[1], pev->data[2]));
+     handleNotesChanged(firstNote);
+   }
+   
+   if (pev->data[0] >= 0x80) {
+     midiNotes.remove(inNote);
+     handleNotesChanged();
+   }
 }
 
-void loop() { // Main loop
-  // Continuously check if Midi data has been received
-  if (MIDI.read()) {       // when a incoming MIDI message is received
-    t = millis();                 // set timer
+void sysexCallback(sysex_event *pev)
+// Called by the MIDIFile library when a system Exclusive (sysex) file event needs 
+// to be processed through the midi communications interface. Most sysex events cannot 
+// really be processed, so we just ignore it here.
+// This callback is set up in the setup() function.
+{
+  DEBUG("\nS T");
+  DEBUG(pev->track);
+  DEBUG(": Data ");
+  for (uint8_t i=0; i<pev->size; i++)
+  {
+    DEBUGX(pev->data[i]);
+	DEBUG(' ');
   }
+}
 
-  if (millis() - t > 10000) {
-    t += 10000;
-    Serial.println("(inactivity)");
-  } 
+void midiSilence(void)
+// Turn everything off on every channel.
+// Some midi files are badly behaved and leave notes hanging, so between songs turn
+// off all the notes and sound
+{
+	midi_event	ev;
+
+	// All sound off
+	// When All Sound Off is received all oscillators will turn off, and their volume
+	// envelopes are set to zero as soon as possible.
+	ev.size = 0;
+	ev.data[ev.size++] = 0xb0;
+	ev.data[ev.size++] = 120;
+	ev.data[ev.size++] = 0;
+
+	for (ev.channel = 0; ev.channel < 16; ev.channel++)
+		midiCallback(&ev);
+}
+
+
+// from 5pin MIDI Input - SimpleSynth
+void handleNotesChanged(bool isFirstNote = false)
+{
+    if (midiNotes.empty())
+    {
+        noTone(sAudioOutPin);
+    }
+    else
+    {
+        // Possible playing modes:
+        // Mono Low:  use midiNotes.getLow
+        // Mono High: use midiNotes.getHigh
+        // Mono Last: use midiNotes.getLast
+
+        byte currentNote = 0;
+        if (midiNotes.getLast(currentNote))
+        {
+           Serial.print("here is tone");
+           Serial.println(sNotePitches[currentNote]);
+           tone(sAudioOutPin, sNotePitches[currentNote]);
+
+        }
+    }
 }
 
 // MyHandleNoteON is the function that will be calledPin by the Midi Library
 // when a MIDI NOTE ON message is received.
 // It will be passed bytes for Channel, Pitch, and Velocity
-void MyHandleNoteOn(byte channel, byte pitch, byte velocity) { 
-  Serial.println(String("Note On:  ch=") + channel + ", note=" + pitch + ", velocity=" + velocity);
-  digitalWrite(ledPin,HIGH);  //Turn ledPin on
+void handleNoteOn(byte inChannel, byte inNote, byte inVelocity)
+{
+    const bool firstNote = midiNotes.empty();
+    midiNotes.add(MidiNote(inNote, inVelocity));
+    Serial.print("adding ");
+    Serial.print(inNote);
+    Serial.print(" ");
+    Serial.println(inVelocity);
+    handleNotesChanged(firstNote);
 }
 
 // MyHandleNoteOFF is the function that will be calledPin by the Midi Library
 // when a MIDI NOTE OFF message is received.
 // * A NOTE ON message with Velocity = 0 will be treated as a NOTE OFF message *
 // It will be passed bytes for Channel, Pitch, and Velocity
-void MyHandleNoteOff(byte channel, byte pitch, byte velocity) {
-  Serial.println(String("Note Off: ch=") + channel + ", note=" + pitch + ", velocity=" + velocity); 
-  digitalWrite(ledPin,LOW);  //Turn ledPin off
+void handleNoteOff(byte inChannel, byte inNote, byte inVelocity)
+{
+    midiNotes.remove(inNote);
+    handleNotesChanged();
 }
 
 void playMyNote(byte channel, byte pitch)
@@ -120,5 +239,100 @@ void playMyNote(byte channel, byte pitch)
     
     digitalWrite(txPin, txState);
   }
+
+
+
+void setup() {
+  pinMode(ledPin, OUTPUT);         // Set LED to output
+  pinMode(txPin, OUTPUT);          // Set optical transmit pin ot out
+  
+  // Initialize SD
+  if (!SD.begin(SD_SELECT, SPI_FULL_SPEED))
+  {
+    DEBUG("\nSD init fail!");
+    digitalWrite(SD_ERROR_LED, HIGH);
+    while (true) ;
+  }
+
+  // Initialize MIDIFile
+  SMF.begin(&SD);
+  SMF.setMidiHandler(midiCallback);
+  SMF.setSysexHandler(sysexCallback);
+  
+  
+  Serial.begin(9600);
+  while (!Serial) {
+    ; // wait for serial port to connect. Need to open Serial Monitor
+  }
+  Serial.println("Serial Port Initialized");
+}
+
+void playFile() {
+  int  err;
+	
+	for (uint8_t i=0; i<ARRAY_SIZE(tuneList); i++)
+	{
+	  // reset LEDs
+	  digitalWrite(READY_LED, LOW);
+	  digitalWrite(SD_ERROR_LED, LOW);
+
+	  // use the next file name and play it
+    DEBUG("\nFile: ");
+    DEBUG(tuneList[i]);
+	  SMF.setFilename(tuneList[i]);
+	  err = SMF.load();
+	  if (err != -1)
+	  {
+		DEBUG("\nSMF load Error ");
+		DEBUG(err);
+		digitalWrite(SMF_ERROR_LED, HIGH);
+		delay(WAIT_DELAY);
+	  }
+	  else
+	  {
+		// play the file
+		while (!SMF.isEOF())
+		{
+			if (SMF.getNextEvent())
+			tickMetronome();
+		}
+
+		// done with this one
+		SMF.close();
+		midiSilence();
+
+		// signal finish LED with a dignified pause
+		digitalWrite(READY_LED, HIGH);
+		delay(WAIT_DELAY);
+	  }
+	}
+}
+
+
+void loop() { // Main loop
+  playFile()
+  
+  // After file is over, begin reading in from keyboard
+  MIDI.begin(MIDI_CHANNEL_OMNI); // Initialize the Midi Library.
+  // OMNI sets it to listen to all channels.. MIDI.begin(2) would set it 
+  // to respond to notes on channel 2 only.
+  MIDI.setHandleNoteOn(MyHandleNoteOn); // This command
+  // tells the Midi Library which function you want to call when a NOTE ON command
+  // is received. In this case it's "MyHandleNoteOn".
+  MIDI.setHandleNoteOff(MyHandleNoteOff); // This command tells the Midi Library 
+  // to call "MyHandleNoteOff" when a NOTE OFF command is received.
+  
+  
+  // Continuously check if Midi data has been received
+  if (MIDI.read()) {       // when a incoming MIDI message is received
+    t = millis();                 // set timer
+  }
+
+  if (millis() - t > 10000) {
+    t += 10000;
+    Serial.println("(inactivity)");
+  } 
+}
+
 
 

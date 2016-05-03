@@ -1,6 +1,6 @@
 // Ported to SdFat from the native Arduino SD library example by Bill Greiman
 // On the Ethernet Shield, CS is pin 4. SdFat handles setting SS
-const int chipSelect = 10;
+const int chipSelect = 20;
 /*
  SD card read/write
 

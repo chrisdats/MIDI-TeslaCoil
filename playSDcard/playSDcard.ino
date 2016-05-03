@@ -1,8 +1,28 @@
-// Play a file from the SD card in looping mode, from the SD card.
-// Example program to demonstrate the use of the MIDFile library
-//
-// Hardware required:
-//	SD card interface - change SD_SELECT for SPI comms
+// Use this file to play MIDI files from SD Card
+
+/*
+ MD_MIDIFile_Loop.ino 
+ Christopher Datsikas
+ Date Created: 04-03-2016
+ Date Modified: 05-02-2016
+ Status: In Progress
+
+EQUIPMENT
+ Teensy 3.2
+ IF-E96E 
+ ULN2803A Darlington Transistor Array
+ 
+CONNECTIONS
+ Teensy
+ GND  -GND
+ Pin00-RX1 (MIDI)
+ PIN02-LED
+ Pin03-LED
+ Pin04-LED
+ Pin06-OpticalTransmitter
+ Pin08-TX3 - LCD
+ */
+
 
 #include <SdFat.h>
 #include <MD_MIDIFile.h>

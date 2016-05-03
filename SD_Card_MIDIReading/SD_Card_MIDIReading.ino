@@ -20,7 +20,6 @@
 
 
 
-
 // SD chip select pin for SPI comms.
 // Arduino Ethernet shield, pin 4.
 // Default SD chip select is the SPI SS pin (10).
@@ -69,15 +68,12 @@ char *tuneList[] =
 //	"JZBUMBLE.MID",
 };
 
-// These don't play as they need more than 16 tracks but will run if MIDIFile.h is changed
-//#define MIDI_FILE  "SYMPH9.MID"		// 29 tracks
-//#define MIDI_FILE  "CHATCHOO.MID"		// 17 tracks
-//#define MIDI_FILE  "STRIPPER.MID"		// 25 tracks
 
 SdFat	SD;
 MD_MIDIFile SMF;
 MIDI_CREATE_INSTANCE(HardwareSerial, Serial1, MIDI);
 
+// 5 pin MIDI Input
 void handleNotesChanged(bool isFirstNote = false)
 {
     if (midiNotes.empty())
@@ -143,8 +139,6 @@ void midiCallback(midi_event *pev)
      //Serial.println("removing" + pev->data[1]);
      handleNotesChanged();
    }
-  
-  
 }
 
 void sysexCallback(sysex_event *pev)
