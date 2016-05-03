@@ -2,11 +2,11 @@
  Christopher Datsikas
  Adapted from Teensy documentation, BlinkWithoutDelay.ino Arduino Example, Geek Group
  Date Created: 03-20-2016
- Date Modified: 03-20-2016
+ Date Modified: 05-03-2016
  Status: Works!
  Run this code to verify operation of optical transmitter
  IF-E96E should blink red
- AND On-Board LED will blink to show that Board has power and is working
+ AND On-Board LED will blink to show when transmission is occuring
  In present version need to open Serial Monitor for code to run.
  
  EQUIPMENT
@@ -24,13 +24,9 @@
 #define ledPin   13             // On-board Chip LED
 #define txPin   6              // Sinks IF-E96E
 
-// LED variables
-int ledState = LOW;             // ledState used to set the LED
-long previousMillis = 0;        // will store last time LED was updated
-long ledInterval = 1000;           // interval at which to blink (milliseconds)
 
 // Tx variables
-float freq = .2;                // Change the frequency of the tone here (in Hz)
+float freq = 1;                // Change the frequency of the tone here (in Hz)
 float period;
 float duty = .50;               //Change the duty cycle of the tone here
 int txState = LOW;
@@ -59,25 +55,6 @@ void setup() {
 void loop()
 {
   
-  // check to see if it's time to blink the LED; that is, if the 
-  // difference between the current time and last time you blinked 
-  // the LED is bigger than the interval at which you want to blink the LED.
-  unsigned long currentMillis = millis();
-  if(currentMillis - previousMillis > ledInterval) {
-    // save the last time you blinked the LED 
-    previousMillis = currentMillis;   
-
-    // if the LED is off turn it on and vice-versa:
-    if (ledState == LOW)
-      ledState = HIGH;
-    else
-      ledState = LOW;
-
-    // set the LED with the ledState of the variable:
-    digitalWrite(ledPin, ledState);
-  }
-  
-  
   // same procedure as above but modification to allow for
   // different ontime and offtime
   currentMicros = micros();
@@ -94,6 +71,7 @@ void loop()
     }
     
     digitalWrite(txPin, txState);
+    digitalWrite(ledPin, txState);
   }
   
 }

@@ -27,6 +27,8 @@
 #include "noteList.h"
 #include "pitches.h"
 
+
+// define pins
 #define greenLed  2
 #define yellowLed 3
 #define redLed    4

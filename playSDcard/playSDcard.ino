@@ -27,15 +27,20 @@ CONNECTIONS
 
 #include <SdFat.h>
 #include <MD_MIDIFile.h>
+#include <MIDI.h>
+#include "noteList.h"
 #include "pitches.h"
 
+// define pins
+#define greenLed  2
+#define yellowLed 3
+#define redLed    4
+#define txOut     6
 
 #define DEBUGS(s)     Serial.print(s)
 #define	DEBUG(s, x)	  { Serial.print(F(s)); Serial.print(x); }
 #define	DEBUGX(s, x)	{ Serial.print(F(s)); Serial.print(x, HEX); }
 #define	SERIAL_RATE	9600
-
-
 
 // SD chip select pin for SPI comms.
 #define  SD_SELECT  20
@@ -49,6 +54,8 @@ char *loopfile = "pirates.mid";  // simple and short file
 
 SdFat	SD;
 MD_MIDIFile SMF;
+static const unsigned sMaxNumNotes = 16;
+MidiNoteList<sMaxNumNotes> midiNotes;
 
 const int pinOut = 6;
 
@@ -64,13 +71,60 @@ void midiCallback(midi_event *pev)
   {
 	  DEBUGX(" ", pev->data[i]);
   }
+  // if it is a note on command
   if ((pev->data[0] == 0x90) && (pev->data[2] != 0)) {
-     tone(pinOut, sNotePitches[(pev->data[1]-20)]);
+     handleNoteOn(pev->channel+1, (pev->data[1]-20), pev->data[2]);
    }
+   // if it is a note off command
    else if ((pev->data[0] == 0x80) || (pev->data[2] == 0)) {
-     noTone(pinOut);
-   }
-  
+     handleNoteOff(pev->channel+1, (pev->data[1]-20), pev->data[2]);
+   } 
+}
+
+void handleNotesChanged(bool isFirstNote = false)
+{
+  if (midiNotes.empty())
+  {
+    noTone(txOut);
+  }
+  else
+  {
+    // Possible playing modes:
+    // Mono Low:  use midiNotes.getLow
+    // Mono High: use midiNotes.getHigh
+    // Mono Last: use midiNotes.getLast
+
+    byte currentNote = 0;
+    if (midiNotes.getLast(currentNote))
+    {
+      //Serial.print("here is tone: ");
+      //Serial.println(sNotePitches[currentNote]);
+      tone(txOut, sNotePitches[currentNote]);
+
+    }
+  }
+}
+
+// MyHandleNoteON is the function that will be called by the Midi Library
+// when a MIDI NOTE ON message is received.
+// It will be passed bytes for Channel, Note, and Velocity
+void handleNoteOn(byte inChannel, byte inNote, byte inVelocity)
+{
+  const bool firstNote = midiNotes.empty();
+  midiNotes.add(MidiNote(inNote, inVelocity));
+  Serial.println(String("Note On:  ch=") + inChannel + ", note=" + inNote + ", velocity=" + inVelocity);
+  handleNotesChanged(firstNote);
+}
+
+// MyHandleNoteOFF is the function that will be called by the Midi Library
+// when a MIDI NOTE OFF message is received.
+// * A NOTE ON message with Velocity = 0 will be treated as a NOTE OFF message *
+// It will be passed bytes for Channel, Note, and Velocity
+void handleNoteOff(byte inChannel, byte inNote, byte inVelocity)
+{
+  midiNotes.remove(inNote);
+  Serial.println(String("Note Off: ch=") + inChannel + ", note=" + inNote + ", velocity=" + inVelocity); 
+  handleNotesChanged();
 }
 
 void setup(void)
