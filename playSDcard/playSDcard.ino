@@ -50,7 +50,9 @@ CONNECTIONS
 // The files in the tune list should be located on the SD card 
 // or an error will occur opening the file and the next in the 
 // list will be opened (skips errors).
-char *loopfile = "pirates.mid";  // simple and short file
+char *loopfile = "pirates.mid";
+//char *loopfile = "nyan.mid"; //change to getHigh
+//char *loopfile = "satisf.mid";
 
 SdFat	SD;
 MD_MIDIFile SMF;
@@ -85,7 +87,8 @@ void handleNotesChanged(bool isFirstNote = false)
 {
   if (midiNotes.empty())
   {
-    noTone(txOut);
+    //noTone(txOut);
+    analogWrite(txOut, 0); 
   }
   else
   {
@@ -99,7 +102,9 @@ void handleNotesChanged(bool isFirstNote = false)
     {
       //Serial.print("here is tone: ");
       //Serial.println(sNotePitches[currentNote]);
-      tone(txOut, sNotePitches[currentNote]);
+      //tone(txOut, sNotePitches[currentNote]);
+      analogWriteFrequency(txOut, sNotePitches[currentNote]);
+      analogWrite(txOut, 20); 
 
     }
   }

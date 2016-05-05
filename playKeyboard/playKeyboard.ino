@@ -47,7 +47,8 @@ void handleNotesChanged(bool isFirstNote = false)
 {
   if (midiNotes.empty())
   {
-    noTone(txOut);
+    //noTone(txOut);
+    analogWrite(txOut, 0);
   }
   else
   {
@@ -61,8 +62,9 @@ void handleNotesChanged(bool isFirstNote = false)
     {
       //Serial.print("here is tone: ");
       //Serial.println(sNotePitches[currentNote]);
-      tone(txOut, sNotePitches[currentNote]);
-
+      //tone(txOut, sNotePitches[currentNote]);
+      analogWriteFrequency(txOut, sNotePitches[currentNote]);
+      analogWrite(txOut, 20); 
     }
   }
 }
@@ -105,11 +107,25 @@ void setup()
   MIDI.setHandleNoteOff(handleNoteOff); // This command tells the Midi Library 
   // to call "MyHandleNoteOff" when a NOTE OFF command is received.
 
-  Serial.begin(9600);
-  //  while (!Serial) {
-  //    ; // wait for serial port to connect. Need to open Serial Monitor
-  //  }
-  Serial.println("playKeyboard.ino");
+  // Begin Serial communication
+  Serial.begin(9600);    // Serial communication to computer
+  Serial3.begin(9600);  // Serial communication to LCD screen
+  delay(500);          // wait for serial communication to be established.
+  
+  // LCD Setup
+  //clears the screen
+  Serial3.write(0xFE);  //command flag
+  Serial3.write(0x01); 
+  //puts the cursor at line 0 char 0.
+  Serial3.write(0xFE); //command flag
+  Serial3.write(128); //position
+  // slightly dim backlight
+  Serial3.write(0x7C); // NOTE THE DIFFERENT COMMAND FLAG = 124 dec
+  Serial3.write(150); // brightness - any value between 128 and 157 or 0x80 and 0x9D
+  delay(1);
+  Serial3.print("Musical Tesla Coils - Keyboard");
+  delay(1);
+  
 }
 
 void loop()
