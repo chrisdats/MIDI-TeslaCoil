@@ -32,9 +32,9 @@ CONNECTIONS
 #include "pitches.h"
 
 // define pins
-#define greenLed  2
-#define yellowLed 3
-#define redLed    4
+#define greenLED  2
+#define yellowLED 3
+#define redLED    4
 #define txOut     6
 
 #define DEBUGS(s)     Serial.print(s)
@@ -88,7 +88,8 @@ void handleNotesChanged(bool isFirstNote = false)
   if (midiNotes.empty())
   {
     //noTone(txOut);
-    analogWrite(txOut, 0); 
+    analogWrite(txOut, 0);
+    digitalWrite(yellowLED, LOW); 
   }
   else
   {
@@ -104,7 +105,8 @@ void handleNotesChanged(bool isFirstNote = false)
       //Serial.println(sNotePitches[currentNote]);
       //tone(txOut, sNotePitches[currentNote]);
       analogWriteFrequency(txOut, sNotePitches[currentNote]);
-      analogWrite(txOut, 20); 
+      analogWrite(txOut, 20);
+      digitalWrite(yellowLED, HIGH); 
 
     }
   }
@@ -137,7 +139,8 @@ void setup(void)
   int  err;
 
   Serial.begin(SERIAL_RATE);
-
+  pinMode(yellowLED, OUTPUT);
+  
   DEBUGS("\n[MidiFile Looper]");
 
   // Initialize SD

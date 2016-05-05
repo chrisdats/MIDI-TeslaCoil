@@ -26,6 +26,9 @@
 
 
 // Tx variables
+//float freq = 1;
+//float duty = 0.5;
+
 float freq = 100;                // Change the frequency of the tone here (in Hz)
 float period;
 float duty = .025;               //Change the duty cycle of the tone here

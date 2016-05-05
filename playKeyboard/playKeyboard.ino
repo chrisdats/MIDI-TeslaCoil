@@ -29,9 +29,9 @@
 
 
 // define pins
-#define greenLed  2
-#define yellowLed 3
-#define redLed    4
+#define greenLED  2
+#define yellowLED 3
+#define redLED    4
 #define txOut     6
 
 // for timer
@@ -49,6 +49,7 @@ void handleNotesChanged(bool isFirstNote = false)
   {
     //noTone(txOut);
     analogWrite(txOut, 0);
+    digitalWrite(yellowLED, LOW); 
   }
   else
   {
@@ -64,7 +65,8 @@ void handleNotesChanged(bool isFirstNote = false)
       //Serial.println(sNotePitches[currentNote]);
       //tone(txOut, sNotePitches[currentNote]);
       analogWriteFrequency(txOut, sNotePitches[currentNote]);
-      analogWrite(txOut, 20); 
+      analogWrite(txOut, 20);
+      digitalWrite(yellowLED, HIGH);
     }
   }
 }
@@ -96,7 +98,7 @@ void handleNoteOff(byte inChannel, byte inNote, byte inVelocity)
 
 void setup()
 {
-  pinMode(yellowLed, OUTPUT);   // Set LED to output pin
+  pinMode(yellowLED, OUTPUT);   // Set LED to output pin
   pinMode(txOut, OUTPUT);       // Set tx pin (audio or optical) to output
   MIDI.begin(MIDI_CHANNEL_OMNI); // Initialize the Midi Library.
   // OMNI sets it to listen to all channels.. MIDI.begin(2) would set it 
@@ -123,7 +125,7 @@ void setup()
   Serial3.write(0x7C); // NOTE THE DIFFERENT COMMAND FLAG = 124 dec
   Serial3.write(150); // brightness - any value between 128 and 157 or 0x80 and 0x9D
   delay(1);
-  Serial3.print("Musical Tesla Coils - Keyboard");
+  Serial3.print("Keyboard");
   delay(1);
   
 }
