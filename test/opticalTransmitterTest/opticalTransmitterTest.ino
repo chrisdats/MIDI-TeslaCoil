@@ -31,7 +31,7 @@
 
 float freq = 100;                // Change the frequency of the tone here (in Hz)
 float period;
-float duty = .025;               //Change the duty cycle of the tone here
+float duty = (1-.025);               //Change the duty cycle of the tone here
 int txState = LOW;
 unsigned long ontime, offtime;
 unsigned long currentMicros = 0;    // will overflow after 70 minutes
@@ -53,6 +53,8 @@ void setup() {
   Serial.println(ontime);
   Serial.println(offtime);
   Serial.println("Setup Complete");
+
+  digitalWrite(txPin, HIGH);
 }
 
 void loop()

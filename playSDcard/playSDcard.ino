@@ -54,12 +54,23 @@ char *loopfile = "pirates.mid";
 //char *loopfile = "nyan.mid"; //change to getHigh
 //char *loopfile = "satisf.mid";
 
+// on speaker use activeHigh
+/// on Teslacoil use activeLow
+boolean activeLow = false;
+boolean polyphonic = true;
+
+// variables for polyphonic support
+int s = 0;
+unsigned long time = 0;
+float dutyCycle = 0.15;
+boolean txStateAll = true;
+
+
 SdFat	SD;
 MD_MIDIFile SMF;
 static const unsigned sMaxNumNotes = 16;
 MidiNoteList<sMaxNumNotes> midiNotes;
 
-const int pinOut = 6;
 
 void midiCallback(midi_event *pev)
 // Called by the MIDIFile library when a file event needs to be processed
@@ -85,29 +96,33 @@ void midiCallback(midi_event *pev)
 
 void handleNotesChanged(bool isFirstNote = false)
 {
+  // if there is no note, play nothing
   if (midiNotes.empty())
   {
-    //noTone(txOut);
-    analogWrite(txOut, 0);
-    digitalWrite(yellowLED, LOW); 
+    if (activeLow == true) {
+      analogWrite(txOut, 255);
+    }
+    else {
+      analogWrite(txOut, 0);
+    }
+    digitalWrite(yellowLED, LOW); // set LED to OFF when note is NOT being played
   }
+  // if there is a note in memory play it
   else
   {
     // Possible playing modes:
     // Mono Low:  use midiNotes.getLow
     // Mono High: use midiNotes.getHigh
     // Mono Last: use midiNotes.getLast
-
+    
     byte currentNote = 0;
     if (midiNotes.getLast(currentNote))
     {
       //Serial.print("here is tone: ");
       //Serial.println(sNotePitches[currentNote]);
-      //tone(txOut, sNotePitches[currentNote]);
-      analogWriteFrequency(txOut, sNotePitches[currentNote]);
-      analogWrite(txOut, 20);
-      digitalWrite(yellowLED, HIGH); 
-
+      analogWriteFrequency(txOut, sNotePitches[currentNote]);    // sets the frequency of the note
+      analogWrite(txOut, dutyCycle*255);              // activates the note and sets the duty cycle
+      digitalWrite(yellowLED, HIGH);        // set LED to HIGH when note is being played
     }
   }
 }
@@ -120,7 +135,10 @@ void handleNoteOn(byte inChannel, byte inNote, byte inVelocity)
   const bool firstNote = midiNotes.empty();
   midiNotes.add(MidiNote(inNote, inVelocity));
   Serial.println(String("Note On:  ch=") + inChannel + ", note=" + inNote + ", velocity=" + inVelocity);
-  handleNotesChanged(firstNote);
+  // polyphonic handlesNotes differently
+  if (polyphonic == false) {
+    handleNotesChanged(firstNote);
+  }
 }
 
 // MyHandleNoteOFF is the function that will be called by the Midi Library
@@ -131,8 +149,24 @@ void handleNoteOff(byte inChannel, byte inNote, byte inVelocity)
 {
   midiNotes.remove(inNote);
   Serial.println(String("Note Off: ch=") + inChannel + ", note=" + inNote + ", velocity=" + inVelocity); 
-  handleNotesChanged();
+  // polyphonic handles notes differently
+  if (polyphonic == false) {
+    handleNotesChanged();
+  }
 }
+
+// checks if the note should be in its ON state or OFF state
+// takes as arguments: currentTime (as micros), period (as micros), dutyCycle (as decmial fraction)
+int checkNote(unsigned long currentTime, int period, float dutyCycle) {
+  int phase = (currentTime) % period;
+  if (phase < period*dutyCycle) {
+    return 1; // note should be on
+  }
+  else if (phase > period*dutyCycle) {
+    return 0; // note should be off
+  }
+}
+
 
 void setup(void)
 {
@@ -140,6 +174,10 @@ void setup(void)
 
   Serial.begin(SERIAL_RATE);
   pinMode(yellowLED, OUTPUT);
+  if (polyphonic == true) {
+    pinMode(txOut, OUTPUT);
+  }
+  //analogWrite(txOut, 255);
   
   DEBUGS("\n[MidiFile Looper]");
 
@@ -173,4 +211,28 @@ void loop(void)
 	{
 		SMF.getNextEvent();
 	}
+
+  if (polyphonic == true) {
+    s = 0;           // reset sum to zero
+    time = micros();  // save current time
+    // for all notes in noteList
+    for (int i = 0; i < midiNotes.size(); i++) {
+      byte currentNote = 0;
+      if (midiNotes.get(i, currentNote)) {
+        s += checkNote(time, 1000000/sNotePitches[currentNote], dutyCycle);
+      }
+    }
+    if (s > 0) {
+      txStateAll = true; // on
+    }
+    else {
+      txStateAll = false; //off
+    }
+  
+   Serial.println(txStateAll);
+    digitalWrite(txOut, txStateAll);
+    digitalWrite(yellowLED, txStateAll);
+    
+  }
+
 }
